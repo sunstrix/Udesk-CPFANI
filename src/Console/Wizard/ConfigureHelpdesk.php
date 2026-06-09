@@ -47,7 +47,7 @@ class ConfigureHelpdesk extends Command
     {
         $this
             ->setName('uvdesk:configure-helpdesk')
-            ->setDescription('Scans through your helpdesk setup to check for any mis-configurations.')
+            ->setDescription('Scans through your Helpdesk CP Fani setup to check for any mis-configurations.')
         ;
     }
 
@@ -82,12 +82,11 @@ class ConfigureHelpdesk extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $output->write([self::MCH, self::CLS]);
-        $output->writeln("\n<comment>  Examining helpdesk setup for any configuration issues:</comment>\n");
-        list($db_host, $db_port, $db_name, $db_user, $db_password) = $this->getUpdatedDatabaseCredentials();
+        $output->writeln("\n<comment>  Examining Helpdesk CP Fani setup for any configuration issues:</comment>\n");
+        $databasePath = $this->getUpdatedDatabasePath();
         
-
         // Check 1: Verify database connection
-        $output->writeln("  [-] Establishing a connection with database server");
+        $output->writeln("  [-] Establishing a connection with SQLite database");
 
         if (extension_loaded('redis')) {
             $output->writeln("\n<fg=red;>  [x] Redis extension is loaded");
@@ -96,13 +95,13 @@ class ConfigureHelpdesk extends Command
      ignore this message.</>\n\n");
         }
 
-        list($isServerAccessible, $isDatabaseAccessible) = $this->refreshDatabaseConnection($db_host, $db_port, $db_name, $db_user, $db_password);
+        $isDatabaseAccessible = $this->refreshDatabaseConnection($databasePath);
 
-        if (false == $isServerAccessible || false == $isDatabaseAccessible) {
-            $output->writeln("<fg=red;>  [x]</> Unable to establish a connection with database server</>");
+        if (false == $isDatabaseAccessible) {
+            $output->writeln("<fg=red;>  [x]</> Unable to establish a connection with SQLite database</>");
 
             // Interactively prompt user to re-configure their database
-            $interactiveQuestion = new Question("\n      <comment>Proceed with re-configuring your database credentials? [Y/N]</comment> ", 'Y');
+            $interactiveQuestion = new Question("\n      <comment>Proceed with re-configuring your database path? [Y/N]</comment> ", 'Y');
 
             if ('Y' === strtoupper($this->questionHelper->ask($input, $output, $interactiveQuestion))) {
                 $continue = false;
@@ -112,64 +111,36 @@ class ConfigureHelpdesk extends Command
                     $continue = false;
                     $output->writeln("\n      <comment>Please enter the following details:</comment>\n");
     
-                    $db_host = $this->askInteractiveQuestion("<info>Database Host</info>: ", '127.0.0.1', 6, false, false, "Please enter a host address");
-                    $db_port = $this->askInteractiveQuestion("<info>Database Port</info>: ", '3306', 6, false, false, "Please enter a host port number");
-                    $db_name = $this->askInteractiveQuestion("<info>Database Name</info>: ", null, 6, false, false, "Please enter name of the database you wish to connect with");
-                    $db_user = $this->askInteractiveQuestion("<info>Database User Name</info>: ", null, 6, false, false, "Please enter your user name to connect with the database");
-                    $db_password = $this->askInteractiveQuestion("<info>Database User Password</info>: ", null, 6, false, true, "Please enter your user password to connect with the database");
+                    $databasePath = $this->askInteractiveQuestion("<info>Database Path</info>: ", $this->projectDirectory . '/var/data.db', 6, false, false, "Please enter the full path to the SQLite database file");
     
                     $output->write([self::MCA, self::CLL, self::MCA, self::CLL, self::MCA, self::CLL]);
 
-                    list($isServerAccessible, $isDatabaseAccessible) = $this->refreshDatabaseConnection($db_host, $db_port, $db_name, $db_user, $db_password);
+                    $isDatabaseAccessible = $this->refreshDatabaseConnection($databasePath);
 
-                    if (false == $isServerAccessible) {
-                        $interactiveQuestion = new Question("\n      <comment>Unable to connect with your database server, please check the details provided.\n      Do you wish to try again? [Y/N]</comment> ", 'Y');
+                    if (false == $isDatabaseAccessible) {
+                        $interactiveQuestion = new Question("\n      <comment>Unable to access the SQLite database file. Do you wish to try again? [Y/N]</comment> ", 'Y');
 
                         if ('Y' === strtoupper($this->questionHelper->ask($input, $output, $interactiveQuestion))) {
                             $continue = true;
                         }
 
                         $output->write([self::MCA, self::CLL, self::MCA, self::CLL, self::MCA, self::CLL]);
-                    } else if (false == $isDatabaseAccessible) {
-                        $interactiveQuestion = new Question("\n      <comment>Database <comment>$db_name</comment> does not exist. Proceed with creating database? [Y/N]</comment> ", 'Y');
-
-                        if ('Y' === strtoupper($this->questionHelper->ask($input, $output, $interactiveQuestion))) {
-                            $output->write([self::MCA, self::CLL, self::MCA, self::CLL]);
-                            
-                            // Create Database
-                            if (false == $this->createDatabase($db_host, $db_port, $db_name, $db_user, $db_password)) {
-                                $output->writeln([
-                                    "<fg=red;>  [x]</> An unexpected error occurred while trying to create database <comment>$db_name</comment>.</>",
-                                    "\n  Exiting evaluation process.\n"
-                                ]);
-                            }
-                        } else {
-                            $output->write([self::MCA, self::CLL, self::MCA, self::CLL]);
-
-                            $interactiveQuestion = new Question("\n      <comment>Unable to connect with your database server, please check the details provided.\n      Do you wish to try again? [Y/N]</comment> ", 'Y');
-
-                            if ('Y' === strtoupper($this->questionHelper->ask($input, $output, $interactiveQuestion))) {
-                                $continue = true;
-                            }
-
-                            $output->write([self::MCA, self::CLL, self::MCA, self::CLL, self::MCA, self::CLL]);
-                        }
                     }
                 } while (true == $continue);
 
-                list($isServerAccessible, $isDatabaseAccessible) = $this->refreshDatabaseConnection($db_host, $db_port, $db_name, $db_user, $db_password);
+                $isDatabaseAccessible = $this->refreshDatabaseConnection($databasePath);
 
-                if (true == $isServerAccessible && true == $isDatabaseAccessible) {
-                    $databaseUrl = sprintf("mysql://%s:%s@%s:%s/%s", $db_user, $db_password, $db_host, $db_port, $db_name);
+                if (true == $isDatabaseAccessible) {
+                    $databaseUrl = "sqlite:///" . $databasePath;
 
-                    $output->writeln("\n  [-] Switching to database <info>$db_name</info>");
+                    $output->writeln("\n  [-] Switching to database <info>$databasePath</info>");
 
                     try {
                         $process = new Process(["php", "bin/console", "uvdesk_wizard:env:update", "DATABASE_URL", $databaseUrl]);
                         $process->setWorkingDirectory($this->projectDirectory);
                         $process->mustRun();
 
-                        $output->writeln("  <info>[v]</info> Successfully switched to database <info>$db_name</info>\n");
+                        $output->writeln("  <info>[v]</info> Successfully switched to database <info>$databasePath</info>\n");
                     } catch (\Exception $e) {
                         $output->writeln([
                             "<fg=red;>  [x]</> Failed to update .env with updated database credentials.</>",
@@ -190,11 +161,11 @@ class ConfigureHelpdesk extends Command
                 return 1;
             }
         } else {
-            $output->writeln("  <info>[v]</info> Successfully established a connection with database <info>$db_name</info>\n");
+            $output->writeln("  <info>[v]</info> Successfully established a connection with SQLite database <info>$databasePath</info>\n");
         }
         
         // Check 2: Ensure entities have been loaded
-        $output->writeln("  [-] Comparing the <info>$db_name</info> database schema with the current mapping metadata.");
+        $output->writeln("  [-] Comparing the <info>$databasePath</info> database schema with the current mapping metadata.");
         
         try {
             // Get the current database migration version
@@ -253,7 +224,7 @@ class ConfigureHelpdesk extends Command
                     }
                 } else {
                     $output->writeln([
-                        "\n  <fg=red;>[x]</> There are entities that have not been updated to the <info>$databaseName</info> database yet.",
+                        "\n  <fg=red;>[x]</> There are entities that have not been updated to the <info>$databasePath</info> database yet.",
                         "\n  Exiting evaluation process.\n"
                     ]);
     
@@ -275,7 +246,7 @@ class ConfigureHelpdesk extends Command
         // Check 3: Check if super admin account exists
         $output->writeln("  [-] Checking if an active super admin account exists");
         $userInstance = null;
-        $database = new \PDO("mysql:host=$db_host:$db_port;dbname=$db_name", $db_user, $db_password);
+        $database = new \PDO("sqlite:" . $databasePath);
 
         $supportRoleQuery = $database->query("SELECT * FROM uv_support_role WHERE code = 'ROLE_SUPER_ADMIN'");
         $supportRole = $supportRoleQuery->fetch(\PDO::FETCH_ASSOC);
@@ -437,29 +408,21 @@ class ConfigureHelpdesk extends Command
     }
 
     /**
-     * Checks whether the given database params are valid or not.
+     * Checks whether the given database path is accessible or not.
      *
-     * @param string $host
-     * @param string $port
-     * @param string $name
-     * @param string $user
-     * @param string $password
+     * @param string $databasePath
      * 
      * @return boolean
      */
-    private function refreshDatabaseConnection($host, $port, $name, $user, $password)
+    private function refreshDatabaseConnection($databasePath)
     {
         $response = [
-            'isServerAccessible'   => true,
             'isDatabaseAccessible' => true,
         ];
 
         $entityManager = EntityManager::create([
-            'driver'   => 'pdo_mysql',
-            "host"     => $host,
-            "port"     => $port,
-            'user'     => $user,
-            'password' => $password,
+            'driver' => 'pdo_sqlite',
+            'path'   => $databasePath,
         ], Setup::createAnnotationMetadataConfiguration(['src/Entity'], false));
         
         $databaseConnection = $entityManager->getConnection();
@@ -467,79 +430,37 @@ class ConfigureHelpdesk extends Command
         if (false == $databaseConnection->isConnected()) {
             try {
                 $databaseConnection->connect();
-                $response['isServerAccessible'] = true;
+                $response['isDatabaseAccessible'] = true;
             } catch (\Exception $e) {
                 return false;
             }
         }
 
-        if (! in_array($name, $databaseConnection->getSchemaManager()->listDatabases())) {
-            $response['isDatabaseAccessible'] = false;
-        }
-
-        return [$response['isServerAccessible'], $response['isDatabaseAccessible']];
+        return $response['isDatabaseAccessible'];
     }
 
     /**
-     * Creates a database if not found.
-     *
-     * @param string $host
-     * @param string $port
-     * @param string $name
-     * @param string $user
-     * @param string $password
+     * Get updated database path as given in .env located in project root.
      * 
-     * @return boolean
-     */
-    private function createDatabase($host, $port, $name, $user, $password)
-    {
-        $entityManager = EntityManager::create([
-            'driver'   => 'pdo_mysql',
-            "host"     => $host,
-            "port"     => $port,
-            'user'     => $user,
-            'password' => $password,
-        ], Setup::createAnnotationMetadataConfiguration(['src/Entity'], false));
-        
-        $databaseConnection = $entityManager->getConnection();
-
-        if (false == $databaseConnection->isConnected()) {
-            try {
-                $databaseConnection->connect();
-            } catch (\Doctrine\DBAL\DBALException $e) {
-                return false;
-            }
-        }
-
-        if (! in_array($name, $databaseConnection->getSchemaManager()->listDatabases())) {
-            try {
-                // Create database
-                $databaseConnection->getSchemaManager()->createDatabase($databaseConnection->getDatabasePlatform()->quoteSingleIdentifier($name));
-            } catch (\Exception $e) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Get updated database credentials as given in .env located in project root.
-     * 
-     * @return array
+     * @return string
     */
-    private function getUpdatedDatabaseCredentials()
+    private function getUpdatedDatabasePath()
     {
         $env = (new Dotenv())
             ->parse(file_get_contents($this->container->getParameter('kernel.project_dir') . '/.env'));
         
-        $it = explode('@', substr($env['DATABASE_URL'], strpos($env['DATABASE_URL'], "://") + 3));
+        // Para SQLite, o formato é: sqlite:///caminho/para/data.db
+        $databaseUrl = $env['DATABASE_URL'];
         
-        $name = substr($it[1], strpos($it[1], "/") + 1);
-        list($user, $password) = explode(':', $it[0]);
-        list($host, $port) = explode(':', substr($it[1], 0, strpos($it[1], "/")));
-
-        return [$host, $port, $name, $user, $password];
+        // Remove o prefixo "sqlite:///"
+        $databasePath = str_replace('sqlite:///', '', $databaseUrl);
+        
+        // Se o caminho for relativo, converter para absoluto
+        if (strpos($databasePath, '/') !== 0) {
+            $databasePath = $this->container->getParameter('kernel.project_dir') . '/' . $databasePath;
+        }
+        
+        return $databasePath;
     }
 
     /**
