@@ -23,9 +23,9 @@ use Webkul\UVDesk\CoreFrameworkBundle\Services\UVDeskService;
 
 class ConfigureHelpdesk extends AbstractController
 {
-    const DB_URL_TEMPLATE = "mysql://[user]:[password]@[host]:[port]";
-    const DB_ENV_PATH_TEMPLATE = "DATABASE_URL=DB_DRIVER://DB_USER:DB_PASSWORD@DB_HOST/DB_NAME\n";
-    const DB_ENV_PATH_PARAM_TEMPLATE = "env(DATABASE_URL): 'DB_DRIVER://DB_USER:DB_PASSWORD@DB_HOST/DB_NAME'\n";
+    const DB_URL_TEMPLATE = "sqlite:///%kernel.project_dir%/var/data.db";
+    const DB_ENV_PATH_TEMPLATE = "DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db\n";
+    const DB_ENV_PATH_PARAM_TEMPLATE = "env(DATABASE_URL): 'sqlite:///%kernel.project_dir%/var/data.db'\n";
     const DEFAULT_JSON_HEADERS = [
         'Content-Type' => 'application/json',
     ];
@@ -39,6 +39,9 @@ class ConfigureHelpdesk extends AbstractController
         ],
         [
             'name' => 'mysqli',
+        ],
+        [
+            'name' => 'pdo_sqlite',
         ],
     ];
 
@@ -152,17 +155,24 @@ class ConfigureHelpdesk extends AbstractController
         }
         
         try {
-            $connectionUrl = strtr(self::DB_URL_TEMPLATE, [
-                '[host]'     => $request->request->get('serverName'),
-                '[port]'     => $request->request->get('serverPort'),
-                '[user]'     => $request->request->get('username'),
-                '[password]' => $request->request->get('password'),
-            ]);
-
-            if ($request->request->get('serverVersion') != null) {
-                $connectionUrl .= "?serverVersion=" . $request->request->get('serverVersion');
+            // Para SQLite, não precisamos de credenciais de conexão
+            // Apenas verificamos se o diretório var/ tem permissão de escrita
+            $databasePath = $this->getParameter('kernel.project_dir') . '/var/data.db';
+            $varDir = dirname($databasePath);
+            
+            if (!is_writable($varDir)) {
+                @chmod($varDir, 0777);
             }
 
+            // Storing database configuration to session.
+            $_SESSION['DB_CONFIG'] = [
+                'driver'         => 'pdo_sqlite',
+                'database_path'  => $databasePath,
+                'createDatabase' => true, // SQLite sempre cria o arquivo se não existir
+            ];
+
+            // Testar conexão criando uma instância simples
+            $connectionUrl = 'sqlite:///' . $databasePath;
             $databaseConnection = DriverManager::getConnection([
                 'url' => $connectionUrl,
             ]);
@@ -174,33 +184,10 @@ class ConfigureHelpdesk extends AbstractController
                 $databaseConnection->connect();
             }
 
-            // Check if database exists
-            $createDatabase = (bool) $request->request->get('createDatabase');
-
-            if (
-                ! in_array($request->request->get('database'), $databaseConnection->getSchemaManager()->listDatabases()) 
-                && false == $createDatabase
-            ) {
-                return new JsonResponse([
-                    'status'  => false,
-                    'message' => "The requested database was not found."
-                ]);
-            }
-
-            // Storing database configuration to session.
-            $_SESSION['DB_CONFIG'] = [
-                'host'           => $request->request->get('serverName'),
-                'port'           => $request->request->get('serverPort'),
-                'version'        => $request->request->get('serverVersion'),
-                'username'       => $request->request->get('username'),
-                'password'       => $request->request->get('password'),
-                'database'       => $request->request->get('database'),
-                'createDatabase' => $createDatabase,
-            ];
         } catch (\Exception $e) {
             return new JsonResponse([
                 'status'  => false,
-                'message' => "Failed to establish a connection with database server."
+                'message' => "Failed to establish a connection with database server: " . $e->getMessage()
             ]);
         }
         
@@ -230,26 +217,11 @@ class ConfigureHelpdesk extends AbstractController
             session_start();
         }
 
-        $database_host    = $_SESSION['DB_CONFIG']['host'];
-        $database_port    = $_SESSION['DB_CONFIG']['port'];
-        $database_version = $_SESSION['DB_CONFIG']['version'];
-        $database_user    = $_SESSION['DB_CONFIG']['username'];
-        $database_pass    = $_SESSION['DB_CONFIG']['password'];
-        $database_name    = $_SESSION['DB_CONFIG']['database'];
-
-        $create_database = $_SESSION['DB_CONFIG']['createDatabase'];
+        $database_path = $_SESSION['DB_CONFIG']['database_path'];
 
         try {
-            $connectionUrl = strtr(self::DB_URL_TEMPLATE, [
-                '[host]'     => $database_host,
-                '[port]'     => $database_port,
-                '[user]'     => $database_user,
-                '[password]' => $database_pass,
-            ]);
-
-            if (! empty($database_version)) {
-                $connectionUrl .= "?serverVersion=$database_version";
-            }
+            // Para SQLite, a URL é simplesmente o caminho do arquivo
+            $connectionUrl = 'sqlite:///' . $database_path;
 
             $databaseConnection = DriverManager::getConnection([
                 'url' => $connectionUrl,
@@ -262,28 +234,8 @@ class ConfigureHelpdesk extends AbstractController
                 $databaseConnection->connect();
             }
 
-            // Check if database exists
-            if (! in_array($database_name, $databaseConnection->getSchemaManager()->listDatabases())) {
-                if (false == $create_database) {
-                    throw new \Exception('Database does not exist.');
-                }
-                
-                // Create database
-                $databaseConnection->getSchemaManager()->createDatabase($databaseConnection->getDatabasePlatform()->quoteSingleIdentifier($database_name));
-            }
-
-            $connectionUrl = strtr(self::DB_URL_TEMPLATE . "/[database]", [
-                '[host]'     => $database_host,
-                '[port]'     => $database_port,
-                '[user]'     => $database_user,
-                '[password]' => $database_pass,
-                '[database]' => $database_name,
-            ]);
-
-            if (!empty($database_version)) {
-                $connectionUrl .= "?serverVersion=$database_version";
-            }
-
+            // SQLite cria o arquivo automaticamente, não precisamos criar banco separadamente
+            
             // Update .env
             $application = new Application($kernel);
             $application->setAutoExit(false);
