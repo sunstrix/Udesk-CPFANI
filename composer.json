@@ -1,6 +1,6 @@
 {
-    "name": "uvdesk/community-skeleton",
-    "description": "UVDesk Community Helpdesk Project Skeleton",
+    "name": "cp-fani/helpdesk-cp-fani",
+    "description": "Helpdesk CP Fani Project Skeleton",
     "type": "project",
     "license": "MIT",
     "minimum-stability": "dev",
@@ -9,6 +9,7 @@
         "php": "^7.2.5 || ^8.0",
         "ext-ctype": "*",
         "ext-iconv": "*",
+        "ext-pdo_sqlite": "*",
         "symfony/flex": "^1.17|^2"
     },
     "flex-require": {
