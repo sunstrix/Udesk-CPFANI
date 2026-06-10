@@ -1,4 +1,3 @@
-
 ###> symfony/framework-bundle ###
 /.env.local
 /.env.local.php
@@ -18,3 +17,70 @@
 /phpunit.xml
 .phpunit.result.cache
 ###< phpunit/phpunit ###
+
+# ==========================================
+# BANCO DE DADOS (SQLite / Arquivos Locais)
+# ==========================================
+/var/*.db
+/var/*.sqlite
+/var/*.sqlite3
+/var/data.*
+
+# ==========================================
+# LOGS, CACHE E ARQUIVOS TEMPORÁRIOS
+# ==========================================
+/var/log/
+/var/cache/
+*.log
+instalacao.log
+*.tmp
+*.bak
+
+# ==========================================
+# ARQUIVOS DE SISTEMA OPERACIONAL
+# ==========================================
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+._*
+*.lnk
+
+# ==========================================
+# IDEs E EDITORES DE CÓDIGO
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+.buildpath
+*.sublime-workspace
+*.sublime-project
+
+# ==========================================
+# COMPOSER E GERENCIADORES DE PACOTES
+# ==========================================
+# Nota: Em aplicações Symfony, a prática recomendada é versionar o composer.lock.
+# Se desejar ignorá-lo, descomente a linha abaixo:
+# /composer.lock
+
+# ==========================================
+# FRONTEND / NODE (se aplicável no futuro)
+# ==========================================
+/node_modules/
+/yarn-error.log
+/package-lock.json
+/yarn.lock
+
+# ==========================================
+# SEGURANÇA E CREDENCIAIS
+# ==========================================
+*.pem
+*.key
+*.crt
+.htpasswd
+id_rsa
+id_rsa.pub
