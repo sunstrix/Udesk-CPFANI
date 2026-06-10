@@ -1,16 +1,20 @@
 parameters:
-    # Adds a fallback DATABASE_URL if the env var is not set.
-    # This allows you to run cache:warmup even if your
-    # environment variables are not available yet.
-    # You should not need to change this value.
+    # Adiciona um DATABASE_URL de fallback caso a variável de ambiente não esteja definida.
+    # Isso permite executar cache:warmup mesmo que suas
+    # variáveis de ambiente ainda não estejam disponíveis.
+    # Você não deve precisar alterar este valor.
     env(DATABASE_URL): ''
 
 doctrine:
     dbal:
-        # configure these for your database server
+        # Configure estes parâmetros para o seu servidor de banco de dados
         driver: 'pdo_sqlite'
-        
         url: '%env(DATABASE_URL)%'
+
+        # Observação: Para SQLite, o caminho do arquivo .db é gerenciado 
+        # automaticamente pela variável DATABASE_URL definida no arquivo .env
+        # (ex: sqlite:///%kernel.project_dir%/var/data.db)
+
     orm:
         auto_generate_proxy_classes: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
