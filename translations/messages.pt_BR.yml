@@ -1359,7 +1359,7 @@
 "Success! Ticket type updated successfully.": "Sucesso! Tipo de ticket atualizado com sucesso."
 "Error! Ticket type with same name already exist": "Erro! Já existe um tipo de ticket com o mesmo nome."
 "SAVE": "SALVAR"
-#customer page
+"#customer page": "#customer page"
 "Howdy!": "Olá!"
 "New Ticket Request": "Nova Solicitação de Ticket"
 "Ticket Requests": "Solicitações de Ticket"
@@ -1382,8 +1382,6 @@
 "Ticket assigned to support group ": "Ticket atribuído ao grupo de suporte."
 "Mailbox configuration removed successfully.": "Configuração da caixa de correio removida com sucesso."
 "visit our website": "visite nosso site"
-
-
 "Cookie Usage Policy": "Política de Uso de Cookies"
 "cookie": "cookie"
 "cookies": "cookies"
@@ -1412,8 +1410,7 @@
 "Looking for something specific? Choose a relevant category from below to explore possible solutions": "Procurando algo específico? Escolha uma categoria relevante abaixo para explorar possíveis soluções."
 "No Categories Found!": "Nenhuma Categoria Encontrada!"
 "Powered by": "Desenvolvido por"
-
-#forgotpassword
+"#forgotpassword": "#forgotpassword"
 "Forgot Password": "Esqueceu a Senha"
 "Enter your email address and we will send you an email with instructions to update your login credentials.": "Digite seu endereço de e-mail e enviaremos um e-mail com instruções para atualizar suas credenciais de login."
 "Send Mail": "Enviar E-mail"
@@ -1425,7 +1422,7 @@
 "To know more about how our privacy policy works, please %websiteLink%.": "Para saber mais sobre como nossa política de privacidade funciona, por favor %websiteLink%."
 "This field contain maximum 40 charectures.": "Este campo contém no máximo 40 caracteres."
 "This field contain maximum 50 charectures.": "Este campo contém no máximo 50 caracteres."
-#misc
+"#misc": "#misc"
 "Time": "Tempo"
 "Links": "Links"
 "Broadcast Message": "Mensagem de Transmissão"
