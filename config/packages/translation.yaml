@@ -1,6 +1,12 @@
 framework:
+    # Define o idioma padrão da aplicação para Português do Brasil
     default_locale: pt_BR
     translator:
+        # Diretório base onde o Symfony buscará os arquivos de tradução
         default_path: '%kernel.project_dir%/translations'
+        # Idiomas de fallback caso uma chave de tradução não seja encontrada
+        # O 'en' é mantido como fallback secundário para evitar exceções em 
+        # pacotes de terceiros (vendors) que ainda não possuam tradução pt_BR
         fallbacks:
             - pt_BR
+            - en
